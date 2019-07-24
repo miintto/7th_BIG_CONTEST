@@ -12,5 +12,5 @@ $> tree
 
 2. Insert pandas dataframe into sql table
 ~~~bash
-$> python to_sql.py insert_into afsnt afsnt_dly sfsnt
+$> python to_sql.py insert_into afsnt sfsnt afsnt_dly
 ~~~
