@@ -6,4 +6,6 @@
 *.pyc
 *.log
 *.xlsx
+*.pptx
+*.txt
 data/
