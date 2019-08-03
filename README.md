@@ -14,8 +14,11 @@ $> tree
 ~~~bash
 $> python to_sql.py insert_into afsnt sfsnt afsnt_dly
 ~~~
-
-3. add AFSNT data into the NUM_FLT column
+3. Calculating time between departure and arrival
 ~~~bash
-$> python dataframe.py count_num_flt ./data/AFSNT_2.csv
+$> python dataframe.py calculate_time ./data/AFSNT.csv ./data/AFSNT_addtime.csv
+~~~
+4. Counting the number of flights in the airports
+~~~bash
+$> python dataframe.py count_num_flt ./data/AFSNT_addtime.csv ./data/AFSNT_dev.csv
 ~~~
