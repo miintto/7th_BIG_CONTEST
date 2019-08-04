@@ -5,7 +5,7 @@ import tqdm
 
 # python dataframe.py calculate_time ./data/AFSNT.csv ./data/AFSNT_addtime.csv
 
-def calculate_time(file_name, output_name):
+def calculate_STT_time(file_name, output_name):
     print(' >>> Load data')
     afsnt = pd.read_csv(file_name, encoding = 'cp949')
 
@@ -20,7 +20,7 @@ def calculate_time(file_name, output_name):
     afsnt['STT'] = [dt.datetime.combine(i, j) for i, j in zip(afsnt['DATE'], afsnt['STT'])]
     afsnt['ATT'] = [dt.datetime.combine(i, j) for i, j in zip(afsnt['DATE'], afsnt['ATT'])]
 
-    afsnt.loc[:, 'TIME'] = 0
+    afsnt.loc[:, 'STT_TIME'] = 0
     REG_set = afsnt.groupby('REG').size().sort_values(ascending=False)
 
     new_afsnt = pd.DataFrame(columns=afsnt.columns)
@@ -28,27 +28,78 @@ def calculate_time(file_name, output_name):
     print(' >>> Calculating the time...')
     for REG in tqdm.tqdm(REG_set.keys(), mininterval=1):
         afsnt_apart = afsnt.loc[afsnt.REG==REG, :].sort_values(by=['REG', 'FLT', 'STT']).reset_index(drop=True)
-
-        time = [(afsnt_apart.ATT[i+1] - afsnt_apart.ATT[i]).seconds for i in range(len(afsnt_apart.STT)-1)]
+        
+        timedelta = [afsnt_apart.STT[i+1] - afsnt_apart.STT[i] for i in range(len(afsnt_apart.STT)-1)]
+        time = [int(t.days*24*60 + t.seconds/60) for t in timedelta]
         time.append(0)
-        afsnt_apart.loc[:, 'TIME'] = time
-        afsnt_apart.loc[:, 'TIME'] = (afsnt_apart.loc[:, 'TIME']/60).astype(int)
+        afsnt_apart.loc[:, 'STT_TIME'] = time
 
         afsnt_apart.loc[:, 'index'] = range(len(afsnt_apart))
 
-        for i, FLT, TIME in afsnt_apart.loc[afsnt_apart.AOD=='D', ['index', 'FLT', 'TIME']].values:
+        for i, FLT, TIME in afsnt_apart.loc[afsnt_apart.AOD=='D', ['index', 'FLT', 'STT_TIME']].values:
             if i==len(afsnt_apart)-1:
-                afsnt_apart.loc[i, 'TIME'] = 0
+                afsnt_apart.loc[i, 'STT_TIME'] = 0
             elif (afsnt_apart.loc[i+1, 'AOD']=='A') & (afsnt_apart.loc[i+1, 'FLT']==FLT):
-                afsnt_apart.loc[i+1, 'TIME'] = TIME
+                if (afsnt_apart.loc[i, 'DATE']==afsnt_apart.loc[i+1, 'DATE']):
+                    afsnt_apart.loc[i+1, 'STT_TIME'] = TIME
+                else:
+                    afsnt_apart.loc[i, 'STT_TIME'] = 0
+                    afsnt_apart.loc[i+1, 'STT_TIME'] = 0
             else:
-                afsnt_apart.loc[i, 'TIME'] = 0
+                afsnt_apart.loc[i, 'STT_TIME'] = 0
 
-        for i, FLT, TIME in afsnt_apart.loc[afsnt_apart.AOD=='A', ['index', 'FLT', 'TIME']].values:
+        for i, FLT in afsnt_apart.loc[afsnt_apart.AOD=='A', ['index', 'FLT']].values:
             if i==0:
-                afsnt_apart.loc[i, 'TIME'] = 0
+                afsnt_apart.loc[i, 'STT_TIME'] = 0
             elif (afsnt_apart.loc[i-1, 'AOD']=='A') | (afsnt_apart.loc[i-1, 'FLT']!=FLT):
-                afsnt_apart.loc[i, 'TIME'] = 0
+                afsnt_apart.loc[i, 'STT_TIME'] = 0
+
+        afsnt_apart = afsnt_apart.drop(['index'], axis=1)
+        new_afsnt = pd.concat([new_afsnt, afsnt_apart])
+
+    new_afsnt.to_csv(output_name, index = False)
+    print(' >>> finished!')
+
+
+def calculate_ATT_time(file_name, output_name):
+    print(' >>> Load data')
+    afsnt = pd.read_csv(file_name, encoding = 'cp949')
+    afsnt.ATT = [dt.datetime.strptime(i, "%Y-%m-%d %H:%M:%S") for i in afsnt.ATT]
+
+    afsnt.loc[:, 'ATT_TIME'] = 0
+    REG_set = afsnt.groupby('REG').size().sort_values(ascending=False)
+
+    new_afsnt = pd.DataFrame(columns=afsnt.columns)
+
+    print(' >>> Calculating the time...')
+    for REG in tqdm.tqdm(REG_set.keys(), mininterval=1):
+
+        afsnt_apart = afsnt.loc[afsnt.REG==REG, :].sort_values(by=['REG', 'FLT', 'STT']).reset_index(drop=True)
+
+        timedelta = [afsnt_apart.ATT[i+1] - afsnt_apart.ATT[i] for i in range(len(afsnt_apart.STT)-1)]
+        time = [int(t.days*24*60 + t.seconds/60) for t in timedelta]
+        time.append(0)
+        afsnt_apart.loc[:, 'ATT_TIME'] = time
+
+        afsnt_apart.loc[:, 'index'] = range(len(afsnt_apart))
+
+        for i, FLT, TIME in afsnt_apart.loc[afsnt_apart.AOD=='D', ['index', 'FLT', 'ATT_TIME']].values:
+            if i==len(afsnt_apart)-1:
+                afsnt_apart.loc[i, 'ATT_TIME'] = 0
+            elif (afsnt_apart.loc[i+1, 'AOD']=='A') & (afsnt_apart.loc[i+1, 'FLT']==FLT):
+                if (afsnt_apart.loc[i, 'DATE']==afsnt_apart.loc[i+1, 'DATE']):
+                    afsnt_apart.loc[i+1, 'ATT_TIME'] = TIME
+                else:
+                    afsnt_apart.loc[i, 'ATT_TIME'] = 0
+                    afsnt_apart.loc[i+1, 'ATT_TIME'] = 0
+            else:
+                afsnt_apart.loc[i, 'ATT_TIME'] = 0
+
+        for i, FLT in afsnt_apart.loc[afsnt_apart.AOD=='A', ['index', 'FLT']].values:
+            if i==0:
+                afsnt_apart.loc[i, 'ATT_TIME'] = 0
+            elif (afsnt_apart.loc[i-1, 'AOD']=='A') | (afsnt_apart.loc[i-1, 'FLT']!=FLT):
+                afsnt_apart.loc[i, 'ATT_TIME'] = 0
 
         afsnt_apart = afsnt_apart.drop(['index'], axis=1)
         new_afsnt = pd.concat([new_afsnt, afsnt_apart])
@@ -65,13 +116,14 @@ def count_num_flt(file_name, output_name):
     afsnt.ATT = [dt.datetime.strptime(i, "%Y-%m-%d %H:%M:%S") for i in afsnt.ATT]
 
     print(' >>> Counting the number of flights...')
-    for i in tqdm.tqdm(range(15, 0, -1), mininterval=1):
+    for i in range(15, 0, -1):
         ARP = 'ARP'+str(i)
+        print(' >>> Counting : '+ARP)
         afsnt_apart = afsnt.loc[afsnt.ARP==ARP, :].reset_index(drop=True)
         afsnt_apart.loc[:, 'NUM_FLT'] = 0
         STT = afsnt_apart.STT
         afsnt_apart.NUM_FLT = [sum((time - dt.timedelta(minutes=30) < STT) & (STT < time + dt.timedelta(minutes=30))) 
-                               for time in afsnt_apart.STT]
+                               for time in tqdm.tqdm(afsnt_apart.STT, mininterval=1)]
         afsnt_apart.to_csv('./data/afsnt_'+ARP+'.csv', index = False)
 
     print(' >>> Concatenate data')
@@ -84,5 +136,6 @@ def count_num_flt(file_name, output_name):
 
 
 if __name__ == '__main__':
-    fire.Fire({'calculate_time':calculate_time, 
+    fire.Fire({'calculate_STT_time':calculate_STT_time, 
+               'calculate_ATT_time':calculate_ATT_time, 
                'count_num_flt':count_num_flt})
