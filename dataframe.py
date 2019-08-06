@@ -42,6 +42,7 @@ def calculate_STT_time(file_name, output_name):
     print(' >>> finished!')
 
 
+
 def calculate_ATT_time(file_name, output_name):
     print(' >>> Load data')
     afsnt = pd.read_csv(file_name, encoding = 'utf-8')
@@ -68,6 +69,7 @@ def calculate_ATT_time(file_name, output_name):
     print(' >>> Writing the data')
     new_afsnt.to_csv(output_name, index = False)
     print(' >>> finished!')
+
 
 
 def _add_time(afsnt_apart, timedelta, column):
@@ -97,6 +99,7 @@ def _add_time(afsnt_apart, timedelta, column):
     return afsnt_apart
 
 
+
 def count_num_flt(file_name, output_name):
     print(' >>> Load data')
     afsnt = pd.read_csv(file_name, encoding = 'cp949')
@@ -112,12 +115,12 @@ def count_num_flt(file_name, output_name):
         STT = afsnt_apart.STT
         afsnt_apart.NUM_FLT = [sum((time - dt.timedelta(minutes=30) < STT) & (STT < time + dt.timedelta(minutes=30))) 
                                for time in tqdm.tqdm(afsnt_apart.STT, mininterval=1)]
-        afsnt_apart.to_csv('./data/afsnt_'+ARP+'.csv', index = False)
+        afsnt_apart.to_csv('./data/tmp/afsnt_'+ARP+'.csv', index = False)
 
     print(' >>> Concatenating data')
-    afsnt_ARP = pd.read_csv('./data/afsnt_ARP1.csv', encoding = 'utf-8')
-    for i in range(2, 16):
-        afsnt_ARP_i = pd.read_csv('./data/afsnt_ARP'+str(i)+'.csv', encoding = 'utf-8')
+    afsnt_ARP = pd.DataFrame(columns=afsnt_apart.columns)
+    for i in range(15):
+        afsnt_ARP_i = pd.read_csv('./data/tmp/afsnt_ARP'+str(i+1)+'.csv', encoding = 'utf-8')
         afsnt_ARP = pd.concat([afsnt_ARP, afsnt_ARP_i]).reset_index(drop=True)
 
     print(' >>> Writing the data')
@@ -125,7 +128,29 @@ def count_num_flt(file_name, output_name):
     print(' >>> finished!')
 
 
+
+def concat_weather_data(output_name):
+    weather = pd.DataFrame(columns=['TYPE','ARP','TIME','W_DIR','W_SPD','VIS','WTHR','CLD','TEM','ATMP'])
+    print(' >>> Load data')
+    for yy in [2017, 2018, 2019]:
+        print(yy, end=' ')
+        try:
+            for i in range(12):
+                weather_i = pd.read_csv('./data/weather/WEATHER_'+str(yy)+str(i+1).zfill(2)+'.csv', encoding = 'utf-8')
+                print('/'+str(i+1).zfill(2), end=' ')
+                weather = pd.concat([weather, weather_i])
+            print()
+        except FileNotFoundError:
+            print()
+            break
+    
+    print(' >>> Writing the data')
+    weather.to_csv(output_name, index = False)
+
+
+
 if __name__ == '__main__':
     fire.Fire({'calculate_STT_time':calculate_STT_time, 
                'calculate_ATT_time':calculate_ATT_time, 
-               'count_num_flt':count_num_flt})
+               'count_num_flt':count_num_flt, 
+               'concat_weather_data':concat_weather_data})
