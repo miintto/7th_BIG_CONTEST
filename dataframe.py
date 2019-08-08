@@ -129,7 +129,7 @@ def count_num_flt(file_name, output_name):
 
 
 
-def load_wether_data(output_dir):
+def load_weather_data(output_dir):
     ICAO_code = ['RKSS', 'RKPK', 'RKPC', 'RKTN', 'RKJJ', 'RKJB', 'RKTU', 'RKNY', 'RKJY', 'RKPU', 'RKPS', 'RKTH', 'RKJK', 'RKNW', 'RKSI']
     yyyymm_list = []
     for y in ['2017', '2018', '2019']:
