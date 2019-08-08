@@ -2,10 +2,13 @@
 ~~~bash
 $> tree
 .
+├── img
 └── data
-    ├── AFSNT.csv
-    ├── AFSNT_DLY.csv
-    └── SFSNT.csv
+    ├── tmp
+    ├── weather
+    ├── (AFSNT.csv)
+    ├── (AFSNT_DLY.csv)
+    └── (SFSNT.csv)
 ~~~
 
 1. [Set database](https://github.com/miintto/7th_BIG_CONTEST/wiki/Database)
@@ -14,15 +17,19 @@ $> tree
 ~~~bash
 $> python to_sql.py insert_into afsnt sfsnt afsnt_dly
 ~~~
-3. Calculating scheduled time between departure and arrival
+
+3. Calculating scheduled & actual time between departure and arrival
 ~~~bash
-$> python dataframe.py calculate_STT_time ./data/AFSNT.csv ./data/AFSNT_addtime.csv
+$> python dataframe.py calculate_STT_time ./data/AFSNT.csv ./data/tmp/AFSNT_addtime.csv
+$> python dataframe.py calculate_ATT_time ./data/tmp/AFSNT_addtime.csv ./data/tmp/AFSNT_addtime.csv
 ~~~
-4. Calculating actual time between departure and arrival
+
+4. Counting the number of flights in the airports
 ~~~bash
-$> python dataframe.py calculate_ATT_time ./data/AFSNT_addtime.csv ./data/AFSNT_addtime.csv
+$> python dataframe.py count_num_flt ./data/tmp/AFSNT_addtime.csv ./data/tmp/AFSNT_dev.csv
 ~~~
-5. Counting the number of flights in the airports
+
+5. Load weather data
 ~~~bash
-$> python dataframe.py count_num_flt ./data/AFSNT_addtime.csv ./data/AFSNT_dev.csv
+$> python dataframe.py concat_weather_data ./data/weather/WEATHER.csv
 ~~~
