@@ -1,5 +1,8 @@
+import os
 import pandas as pd
 import datetime as dt
+import requests
+import cgi
 import fire
 import tqdm
 
@@ -129,45 +132,40 @@ def count_num_flt(file_name, output_name):
 
 
 
-def load_weather_data(output_dir):
-    ICAO_code = ['RKSS', 'RKPK', 'RKPC', 'RKTN', 'RKJJ', 'RKJB', 'RKTU', 'RKNY', 'RKJY', 'RKPU', 'RKPS', 'RKTH', 'RKJK', 'RKNW', 'RKSI']
+def load_weather_data(output_name):
+    ICAO_code = ['RKSS', 'RKPK', 'RKPC', 'RKTN', 'RKJJ', 'RKJB', 'RKTU', 'RKNY', 
+                 'RKJY', 'RKPU', 'RKPS', 'RKTH', 'RKJK', 'RKNW', 'RKSI']
+
     yyyymm_list = []
     for y in ['2017', '2018', '2019']:
         for i in range(12):
             yyyymm_list.append(y+str(i+1).zfill(2))
-    for ICAO in ICAO_code:
-        print(' >>> Load data : '+ICAO)
+
+
+    weather = pd.DataFrame(columns=['TYPE', 'TM', 'WD', 'WSPD', 'WS_GST', 'VIS', 'RVR1', 'RVR2', 'RVR3', 'RVR4','WC', 'TMP', 
+                                    'TD', 'PS', 'PA', 'RN', 'HM', 'CA_TOT', 'CLA_1LYR', 'BASE_1LYR', 'CLF_1LYR', 
+                                    'CLA_2LYR', 'BASE_2LYR', 'CLF_2LYR', 'CLA_3LYR', 'BASE_3LYR', 'CLF_3LYR', 'CLA_4LYR', 
+                                    'BASE_4LYR', 'CLF_4LYR'])
+    for idx, ICAO in enumerate(ICAO_code):
+        print(' >>> Load data : {} ({}/15)'.format(ICAO, idx+1))
         for yyyymm in tqdm.tqdm(yyyymm_list[:-6], mininterval=1):
             url = 'http://amoapi.kma.go.kr/amoApi/air_stcs?icao='+ICAO+'&yyyymm='+yyyymm
-            res = requests.get(url, params=param_dict, stream = True)
+            res = requests.get(url, stream = True)
             if 'Content-Disposition' in res.headers:
                 content_disposition = res.headers.get('Content-Disposition')
                 filename = requests.utils.unquote(cgi.parse_header(content_disposition)[1]['filename'])
-                with open(output_dir+filename, 'wb') as f:
+                with open('./data/weather/'+filename, 'wb') as f:
                     for chunk in res.iter_content(chunk_size=1024):
                         f.write(chunk)
+                weather_i = pd.read_csv('./data/weather/'+filename)
+                weather_i.loc[:, 'TYPE'] = ICAO
+                weather = pd.concat([weather, weather_i], sort=False).reset_index(drop=True)
             else:
                 pass
-    print(' >>> Finished!')
 
-
-def concat_weather_data(output_name):
-    weather = pd.DataFrame(columns=['TYPE','ARP','TIME','W_DIR','W_SPD','VIS','WTHR','CLD','TEM','ATMP'])
-    print(' >>> Load data')
-    for yy in [2017, 2018, 2019]:
-        print(yy, end=' ')
-        try:
-            for i in range(12):
-                weather_i = pd.read_csv('./data/weather/WEATHER_'+str(yy)+str(i+1).zfill(2)+'.csv', encoding = 'utf-8')
-                print('/'+str(i+1).zfill(2), end=' ')
-                weather = pd.concat([weather, weather_i])
-            print()
-        except FileNotFoundError:
-            print()
-            break
-    
     print(' >>> Writing the data')
     weather.to_csv(output_name, index = False)
+    print(' >>> Finished!')
 
 
 
@@ -175,5 +173,4 @@ if __name__ == '__main__':
     fire.Fire({'calculate_STT_time':calculate_STT_time, 
                'calculate_ATT_time':calculate_ATT_time, 
                'count_num_flt':count_num_flt, 
-               'load_wether_data':load_wether_data, 
-               'concat_weather_data':concat_weather_data})
+               'load_weather_data':load_weather_data})
