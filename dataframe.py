@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 import datetime as dt
 import requests
 import cgi
@@ -169,8 +170,73 @@ def load_weather_data(output_name):
 
 
 
+def data_processing(input_name, output_dir):
+    print(' >>> Load data')
+    afsnt = pd.read_csv(input_name, encoding = 'utf-8')
+
+    afsnt.STT = [dt.datetime.strptime(i, "%Y-%m-%d %H:%M:%S") for i in afsnt.STT]
+
+
+    ARP_cat = np.array([int(ARP.replace('ARP', '')) for ARP in afsnt.ARP])
+    ARP_cat[(ARP_cat<15)&(ARP_cat>3)] = 5
+    ARP_cat[ARP_cat==15] = 4
+    ARP_onehot = np.eye(6)[ARP_cat].astype(int)
+    afsnt.loc[:, 'ARP1'] = ARP_onehot[:, 1]
+    afsnt.loc[:, 'ARP2'] = ARP_onehot[:, 2]
+    afsnt.loc[:, 'ARP3'] = ARP_onehot[:, 3]
+    afsnt.loc[:, 'ARP15'] = ARP_onehot[:, 4]
+    afsnt.loc[:, 'ARP_'] = ARP_onehot[:, 5]
+
+    FLO = np.array([ord(i) for i in afsnt.FLO])
+    FLO[FLO==65] = 1
+    FLO[FLO==66] = 2
+    FLO[FLO==70] = 3
+    FLO[FLO==72] = 4
+    FLO[FLO==73] = 5
+    FLO[FLO==74] = 6
+    FLO[FLO==76] = 7
+    FLO[FLO > 65] = 8
+    FLT_onehot = np.eye(9)[FLO].astype(int)
+    afsnt.loc[:, 'FLT_A'] = FLT_onehot[:, 1]
+    afsnt.loc[:, 'FLT_B'] = FLT_onehot[:, 2]
+    afsnt.loc[:, 'FLT_F'] = FLT_onehot[:, 3]
+    afsnt.loc[:, 'FLT_H'] = FLT_onehot[:, 4]
+    afsnt.loc[:, 'FLT_I'] = FLT_onehot[:, 5]
+    afsnt.loc[:, 'FLT_J'] = FLT_onehot[:, 6]
+    afsnt.loc[:, 'FLT_L'] = FLT_onehot[:, 7]
+    afsnt.loc[:, 'FLT_'] = FLT_onehot[:, 8]
+
+    afsnt.loc[:, 'AOD'] = (afsnt.AOD=='A').astype(int)
+    afsnt.loc[:, 'IRR'] = (afsnt.IRR=='Y').astype(int)
+
+    STT = np.array([i.hour for i in afsnt.STT])
+    STT[STT<5] = 0
+    STT[STT==5] = 1
+    STT[(5<STT)&(STT<=12)] = 2
+    STT[(12<STT)&(STT<=18)] = 3
+    STT[18<STT] = 4
+    HOUR_onehot = np.eye(5)[STT].astype(int)
+    afsnt.loc[:, 'HOUR0'] = HOUR_onehot[:, 0]
+    afsnt.loc[:, 'HOUR1'] = HOUR_onehot[:, 1]
+    afsnt.loc[:, 'HOUR2'] = HOUR_onehot[:, 2]
+    afsnt.loc[:, 'HOUR3'] = HOUR_onehot[:, 3]
+    afsnt.loc[:, 'HOUR4'] = HOUR_onehot[:, 4]
+
+    afsnt_train = afsnt.loc[afsnt.CNL=='N', :]
+    afsnt_train = afsnt_train.drop(['ARP', 'ODP', 'FLO', 'FLT', 'REG', 'STT', 'ATT', 'DRR', 'CNL', 'CNR', 'DATE', 'ATT_TIME'], axis=1)
+    train = afsnt_train.loc[afsnt.STT < dt.datetime(2019, 6, 15), :].reset_index(drop=True)
+    validation = afsnt_train.loc[afsnt.STT > dt.datetime(2019, 6, 15), :].reset_index(drop=True)
+
+    print(' >>> Writing the train data')
+    train.to_csv(output_dir+'train.csv', index=False)
+    print(' >>> Writing the validation data')
+    validation.to_csv(output_dir+'validation.csv', index=False)
+
+
+
 if __name__ == '__main__':
     fire.Fire({'calculate_STT_time':calculate_STT_time, 
                'calculate_ATT_time':calculate_ATT_time, 
                'count_num_flt':count_num_flt, 
-               'load_weather_data':load_weather_data})
+               'load_weather_data':load_weather_data, 
+               'data_processing':data_processing})
