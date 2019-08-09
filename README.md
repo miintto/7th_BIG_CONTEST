@@ -31,6 +31,11 @@ $> python dataframe.py count_num_flt ./data/tmp/AFSNT_addtime.csv ./data/tmp/AFS
 
 5. Load weather data
 ~~~bash
-$> python dataframe.py load_weather_data ./data/weather/
-$> python dataframe.py concat_weather_data ./data/weather/WEATHER.csv
+$> python dataframe.py load_weather_data ./data/weather/WEATHER_total.csv
+~~~
+
+6. Predict
+~~~bash
+$> python dataframe.py data_processing ./data/tmp/AFSNT_dev.csv ./data/tmp/
+$> python model.py
 ~~~
