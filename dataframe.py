@@ -169,7 +169,7 @@ def load_weather_data(output_name):
     print(' >>> Finished!')
 
 
-
+# python dataframe.py data_processing ./data/tmp/AFSNT_dev.csv ./data/tmp/
 def data_processing(input_name, output_dir):
     print(' >>> Load data')
     afsnt = pd.read_csv(input_name, encoding = 'utf-8')
@@ -223,7 +223,7 @@ def data_processing(input_name, output_dir):
     afsnt.loc[:, 'HOUR4'] = HOUR_onehot[:, 4]
 
     afsnt_train = afsnt.loc[afsnt.CNL=='N', :]
-    afsnt_train = afsnt_train.drop(['ARP', 'ODP', 'FLO', 'FLT', 'REG', 'STT', 'ATT', 'DRR', 'CNL', 'CNR', 'DATE', 'ATT_TIME'], axis=1)
+    afsnt_train = afsnt_train.drop(['ARP', 'ODP', 'FLO', 'FLT', 'REG', 'STT', 'ATT', 'DRR', 'CNL', 'CNR', 'DATE', 'STT_TIME', 'ATT_TIME'], axis=1)
     train = afsnt_train.loc[afsnt.STT < dt.datetime(2019, 6, 15), :].reset_index(drop=True)
     validation = afsnt_train.loc[afsnt.STT > dt.datetime(2019, 6, 15), :].reset_index(drop=True)
 
