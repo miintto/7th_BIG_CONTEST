@@ -14,7 +14,7 @@ def standardization(data):
 
 
 
-def model(train_data, val_data):
+def to_numpy(train_data, val_data):
     print(' >>> Load data')
     train = pd.read_csv(train_data, encoding = 'utf-8')
     validation = pd.read_csv(val_data, encoding = 'utf-8')
@@ -31,13 +31,11 @@ def model(train_data, val_data):
     Y_val = (Y_val=='Y').astype(int)
     X_val = validation.drop('DLY', axis=1).values
 
-    # model parameter
-    input_dim = X_train.shape[1]
-    output_dim = Y_train.shape[1]
-    lr = 0.01
-    batch_size = 1024
-    epochs = 5
-    
+    return X_train, Y_train, X_val, Y_val
+
+
+
+def dnn_model(input_dim, output_dim):
     model = Sequential()
     model.add(Dense(units = 10, activation = 'relu', input_dim = input_dim))
     model.add(Dense(units = 10, activation = 'relu'))
@@ -45,6 +43,16 @@ def model(train_data, val_data):
     model.add(Dense(units = output_dim, activation = 'sigmoid'))
     print(model.summary())
 
+    return model
+
+
+
+def train(X_train, Y_train, X_val, Y_val, model):
+    # model parameter
+    lr = 0.01
+    batch_size = 128
+    epochs = 10
+    
     adam = Adam(lr=lr, beta_1=0.99, beta_2=0.9)
     model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['accuracy'])
     model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size, verbose=1, shuffle = True)
@@ -67,4 +75,6 @@ def model(train_data, val_data):
 
 
 if __name__ == '__main__':
-    model('./data/tmp/train.csv', './data/tmp/validation.csv')
+    X_train, Y_train, X_val, Y_val = to_numpy('./data/tmp/train.csv', './data/tmp/validation.csv')
+    model = dnn_model(X_train.shape[1], Y_train.shape[1])
+    train(X_train, Y_train, X_val, Y_val, model)
