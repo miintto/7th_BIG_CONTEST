@@ -48,16 +48,22 @@ def dnn_model(input_dim, output_dim):
 
 
 def train(X_train, Y_train, X_val, Y_val, model):
-    # model parameter
     lr = 0.01
-    batch_size = 128
-    epochs = 10
-    
+    batch_size = 256
+    epochs = 5
+    print(' >>> MODEL PARAMETERS')
+    print(' >>> input_dim     : '+str(X_train.shape[1]))
+    print(' >>> output_dim    : '+str(Y_train.shape[1]))
+    print(' >>> learning rate : '+str(lr))
+    print(' >>> batch_size    : '+str(batch_size))
+    print(' >>> epochs        : '+str(epochs), end='\n\n')
+
     adam = Adam(lr=lr, beta_1=0.99, beta_2=0.9)
     model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['accuracy'])
     model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size, verbose=1, shuffle = True)
 
     loss, acc = model.evaluate(X_val, Y_val)
+    RMSE = np.mean((Y_val - model.predict(X_val))**2)
     Y_pre = model.predict_classes(X_val)
     crosstab = pd.crosstab(Y_pre.reshape(-1), Y_val.reshape(-1))
     crosstab.columns.name = 'Actual'
@@ -65,10 +71,11 @@ def train(X_train, Y_train, X_val, Y_val, model):
     pre = sum(Y_val[Y_pre==1]==1)/sum(Y_pre==1)[0]
     rec = sum(Y_pre[Y_val==1]==1)/sum(Y_val==1)[0]
 
-    print('\n >>> [ RESULT ]', end='\n\n')
+    print('\n >>> [ RESULT : DEEP LEARNING ]', end='\n\n')
     print(crosstab, end='\n\n')
-    print(' >>> Loss     : {:.8f}'.format(loss))
-    print(' >>> Accuracy : {:.5f}'.format(acc), end='\n\n')
+    print(' >>> Loss      : {:.8f}'.format(loss))
+    print(' >>> Accuracy  : {:.5f}'.format(acc))
+    print(' >>> RMSE      : {:.8f}'.format(RMSE), end='\n\n')
     print(' >>> Precision : {:.5f}  (Y로 예측한 값 중 실제 Y의 비율)'.format(pre))
     print(' >>> Recall    : {:.5f}  (실제 Y 중 Y로 예측한 비율)'.format(rec))
 
