@@ -169,8 +169,19 @@ def load_weather_data(output_name):
     print(' >>> Finished!')
 
 
-# python dataframe.py data_processing ./data/tmp/AFSNT_dev.csv ./data/tmp/
+
 def data_processing(input_name, output_dir):
+    '''
+    # ARP 는 카테고리화 : [ARP1, ARP2, ARP3, ARP15, 나머지]
+    # FLO도 카테고리화 : [A, B, F, H, I, J, L, 나머지]
+    # AOD -> binary [A:1, D:0]
+    # IRR -> binary [Y:1, N:0]
+    # STT 카티고리화 : [0~4, 5, 6~12, 13~18, 19~23]
+    # ODP, FLT, REG, STT_TIME, ATT_TIME, DATE 제거
+    # 결항데이터 제거
+      - CNL=='N'인 데이터만
+      - CNL, CNR 제거
+    '''
     print(' >>> Load data')
     afsnt = pd.read_csv(input_name, encoding = 'utf-8')
 
