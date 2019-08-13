@@ -37,5 +37,8 @@ $> python dataframe.py load_weather_data ./data/weather/WEATHER_total.csv
 6. Predict
 ~~~bash
 $> python dataframe.py data_processing ./data/tmp/AFSNT_dev.csv ./data/tmp/
-$> python model.py
+$> python model.py   # deep learning model
+$> python model2.py   # SVM model
+$> python model3.py   # decision tree model
+$> python model4.py   # random forest model
 ~~~
