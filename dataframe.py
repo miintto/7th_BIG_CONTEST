@@ -161,8 +161,6 @@ def load_weather_data(output_name):
                 weather_i = pd.read_csv('./data/weather/'+filename)
                 weather_i.loc[:, 'TYPE'] = ICAO
                 weather = pd.concat([weather, weather_i], sort=False).reset_index(drop=True)
-            else:
-                pass
 
     print(' >>> Writing the data')
     weather.to_csv(output_name, index = False)
@@ -242,6 +240,25 @@ def data_processing(input_name, output_dir):
     train.to_csv(output_dir+'train.csv', index=False)
     print(' >>> Writing the validation data')
     validation.to_csv(output_dir+'validation.csv', index=False)
+
+
+
+def standardization(data):
+    mean = np.mean(data)
+    sd = np.std(data)
+    return (data - mean)/sd
+
+
+
+def to_numpy(data):
+    data.loc[:, 'NUM_FLT'] = standardization(data.NUM_FLT)
+    
+    Y = data.loc[:, 'DLY']
+    Y = Y.values.reshape(-1, 1)
+    Y = (Y=='Y').astype(int)
+    X = data.drop('DLY', axis=1).values
+    
+    return X, Y
 
 
 
