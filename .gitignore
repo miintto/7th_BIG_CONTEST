@@ -8,4 +8,5 @@
 *.xlsx
 *.pptx
 *.txt
+*.csv
 data/
