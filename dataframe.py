@@ -168,6 +168,44 @@ def load_weather_data(output_name):
 
 
 
+def merge_weather_data(weather_input, afsnt_input, output_name):
+    print(' >>> Load data')
+    weather = pd.read_csv(weather_input, encoding = 'utf-8')
+    afsnt = pd.read_csv(afsnt_input, encoding = 'utf-8')
+
+    datetime = [dt.datetime.strptime(str(i)[:-2], "%Y%m%d") for i in weather.TM]
+    hours = [dt.timedelta(hours = i%100) for i in weather.TM]
+    weather.TM = [d+h for d, h in zip(datetime, hours)]
+    weather_dev = weather.drop(['WD', 'WS_GST', 'RVR1', 'RVR2', 'RVR3', 'RVR4', 'TD', 'PS', 'RN', 'HM',
+                                'CA_TOT', 'CLA_1LYR', 'BASE_1LYR', 'CLF_1LYR', 'CLA_2LYR', 'BASE_2LYR', 'CLF_2LYR', 
+                                'CLA_3LYR', 'BASE_3LYR', 'CLF_3LYR', 'CLA_4LYR', 'BASE_4LYR', 'CLF_4LYR'], 
+                                axis = 1)
+    print(' >>> Data processing')
+    afsnt.STT = [dt.datetime.strptime(i, "%Y-%m-%d %H:%M:%S") for i in afsnt.STT]
+    afsnt.loc[:, 'TM'] = [i - dt.timedelta(minutes = i.minute) for i in afsnt.STT]
+
+    ICAO = weather_dev.groupby('TYPE').size().keys()
+
+    print(' >>> Merge the data')
+    arp_dict2 = {'RKSS':'ARP1', 'RKPK':'ARP2', 'RKPC':'ARP3', 'RKTN':'ARP4', 'RKJJ':'ARP5', 'RKJB':'ARP6', 'RKTU':'ARP7', 'RKNY':'ARP8',
+                 'RKJY':'ARP9', 'RKPU':'ARP10', 'RKPS':'ARP11', 'RKTH':'ARP12', 'RKJK':'ARP13', 'RKNW':'ARP14', 'RKSI':'ARP15'}
+
+    afsnt_dev = pd.DataFrame(columns=['ARP', 'ODP', 'FLO', 'FLT', 'REG', 'AOD', 'IRR', 'STT', 'ATT', 'DLY',
+                                      'DRR', 'CNL', 'CNR', 'DATE', 'STT_TIME', 'ATT_TIME', 'NUM_FLT', 'TM',
+                                      'TYPE', 'WSPD', 'VIS', 'WC', 'TMP', 'PA'])
+    for icao in ICAO:
+        _afsnt = pd.merge(afsnt.loc[afsnt.ARP==arp_dict2[icao], :], weather_dev.loc[weather_dev.TYPE==icao, :])
+        afsnt_dev = pd.concat([afsnt_dev, _afsnt])
+
+    for idx in set(afsnt.ARP) - set([arp_dict2[i] for i in ICAO]):
+        afsnt_dev = pd.concat([afsnt_dev, afsnt.loc[afsnt.ARP==idx, :]], sort = False)
+
+    afsnt_dev = afsnt_dev.drop(['TM', 'TYPE', 'WC'], axis = 1)
+    print(' >>> Writing the data')
+    afsnt_dev.to_csv(output_name, index = False)
+
+
+
 def data_processing(input_name, output_dir):
     '''
     # ARP 는 카테고리화 : [ARP1, ARP2, ARP3, ARP15, 나머지]
@@ -218,18 +256,18 @@ def data_processing(input_name, output_dir):
     afsnt.loc[:, 'AOD'] = (afsnt.AOD=='A').astype(int)
     afsnt.loc[:, 'IRR'] = (afsnt.IRR=='Y').astype(int)
 
-    STT = np.array([i.hour for i in afsnt.STT])
-    STT[STT<5] = 0
-    STT[STT==5] = 1
-    STT[(5<STT)&(STT<=12)] = 2
-    STT[(12<STT)&(STT<=18)] = 3
-    STT[18<STT] = 4
-    HOUR_onehot = np.eye(5)[STT].astype(int)
-    afsnt.loc[:, 'HOUR0'] = HOUR_onehot[:, 0]
-    afsnt.loc[:, 'HOUR1'] = HOUR_onehot[:, 1]
-    afsnt.loc[:, 'HOUR2'] = HOUR_onehot[:, 2]
-    afsnt.loc[:, 'HOUR3'] = HOUR_onehot[:, 3]
-    afsnt.loc[:, 'HOUR4'] = HOUR_onehot[:, 4]
+    afsnt.loc[:, 'STT_hour'] = np.array([i.hour for i in afsnt.STT])
+    # STT[STT<5] = 0
+    # STT[STT==5] = 1
+    # STT[(5<STT)&(STT<=12)] = 2
+    # STT[(12<STT)&(STT<=18)] = 3
+    # STT[18<STT] = 4
+    # HOUR_onehot = np.eye(5)[STT].astype(int)
+    # afsnt.loc[:, 'HOUR0'] = HOUR_onehot[:, 0]
+    # afsnt.loc[:, 'HOUR1'] = HOUR_onehot[:, 1]
+    # afsnt.loc[:, 'HOUR2'] = HOUR_onehot[:, 2]
+    # afsnt.loc[:, 'HOUR3'] = HOUR_onehot[:, 3]
+    # afsnt.loc[:, 'HOUR4'] = HOUR_onehot[:, 4]
 
     afsnt_train = afsnt.loc[afsnt.CNL=='N', :]
     afsnt_train = afsnt_train.drop(['ARP', 'ODP', 'FLO', 'FLT', 'REG', 'STT', 'ATT', 'DRR', 'CNL', 'CNR', 'DATE', 'STT_TIME', 'ATT_TIME'], axis=1)
@@ -251,7 +289,7 @@ def standardization(data):
 
 
 def to_numpy(data):
-    data.loc[:, 'NUM_FLT'] = standardization(data.NUM_FLT)
+    # data.loc[:, 'NUM_FLT'] = standardization(data.NUM_FLT)
     
     Y = data.loc[:, 'DLY']
     Y = Y.values.reshape(-1, 1)
@@ -267,4 +305,5 @@ if __name__ == '__main__':
                'calculate_ATT_time':calculate_ATT_time, 
                'count_num_flt':count_num_flt, 
                'load_weather_data':load_weather_data, 
+               'merge_weather_data':merge_weather_data, 
                'data_processing':data_processing})
