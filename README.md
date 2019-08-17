@@ -34,11 +34,17 @@ $> python dataframe.py count_num_flt ./data/tmp/AFSNT_addtime.csv ./data/tmp/AFS
 $> python dataframe.py load_weather_data ./data/weather/WEATHER_total.csv
 ~~~
 
-6. Predict
+6. Merge the AFSNT and weather data
+~~~bash
+$> python dataframe.py merge_weather_data ./data/weather/WEATHER_total.csv ./data/tmp/afsnt_dev.csv ./data/tmp/AFSNT_WEATHER.csv
+~~~
+
+7. Predict
 ~~~bash
 $> python dataframe.py data_processing ./data/tmp/AFSNT_dev.csv ./data/tmp/
 $> python model.py   # deep learning model
 $> python model2.py   # SVM model
 $> python model3.py   # decision tree model
 $> python model4.py   # random forest model
+$> python model5.py   # ada boosting model
 ~~~
