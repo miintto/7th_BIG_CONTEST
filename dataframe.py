@@ -200,7 +200,7 @@ def merge_weather_data(weather_input, afsnt_input, output_name):
     for idx in set(afsnt.ARP) - set([arp_dict2[i] for i in ICAO]):
         afsnt_dev = pd.concat([afsnt_dev, afsnt.loc[afsnt.ARP==idx, :]], sort = False)
 
-    afsnt_dev = afsnt_dev.drop(['TM', 'TYPE', 'WC'], axis = 1)
+    afsnt_dev = afsnt_dev.drop(['TM', 'TYPE'], axis = 1)
     print(' >>> Writing the data')
     afsnt_dev.to_csv(output_name, index = False)
 
@@ -209,6 +209,7 @@ def merge_weather_data(weather_input, afsnt_input, output_name):
 def data_processing(input_name, output_dir):
     '''
     # ARP 는 카테고리화 : [ARP1, ARP2, ARP3, ARP15, 나머지]
+    # OPR 는 카테고리화 : [ARP1, ARP3, ARP15, 나머지]
     # FLO도 카테고리화 : [A, B, F, H, I, J, L, 나머지]
     # AOD -> binary [A:1, D:0]
     # IRR -> binary [Y:1, N:0]
@@ -225,33 +226,26 @@ def data_processing(input_name, output_dir):
 
 
     ARP_cat = np.array([int(ARP.replace('ARP', '')) for ARP in afsnt.ARP])
-    ARP_cat[(ARP_cat<15)&(ARP_cat>3)] = 5
+    ARP_cat[(ARP_cat<15)&(ARP_cat>3)] = 0
     ARP_cat[ARP_cat==15] = 4
-    ARP_onehot = np.eye(6)[ARP_cat].astype(int)
-    afsnt.loc[:, 'ARP1'] = ARP_onehot[:, 1]
-    afsnt.loc[:, 'ARP2'] = ARP_onehot[:, 2]
-    afsnt.loc[:, 'ARP3'] = ARP_onehot[:, 3]
-    afsnt.loc[:, 'ARP15'] = ARP_onehot[:, 4]
-    afsnt.loc[:, 'ARP_'] = ARP_onehot[:, 5]
+    afsnt.ARP = ARP_cat
+
+    ODP_cat = np.array([int(ODP.replace('ARP', '')) for ODP in afsnt.ODP])
+    ODP_cat[(ODP_cat<15)&(ODP_cat>3)] = 0
+    ODP_cat[ODP_cat==3] = 0
+    ODP_cat[ODP_cat==15] = 3
+    afsnt.ODP = ODP_cat
 
     FLO = np.array([ord(i) for i in afsnt.FLO])
-    FLO[FLO==65] = 1
-    FLO[FLO==66] = 2
-    FLO[FLO==70] = 3
-    FLO[FLO==72] = 4
-    FLO[FLO==73] = 5
-    FLO[FLO==74] = 6
-    FLO[FLO==76] = 7
-    FLO[FLO > 65] = 8
-    FLT_onehot = np.eye(9)[FLO].astype(int)
-    afsnt.loc[:, 'FLT_A'] = FLT_onehot[:, 1]
-    afsnt.loc[:, 'FLT_B'] = FLT_onehot[:, 2]
-    afsnt.loc[:, 'FLT_F'] = FLT_onehot[:, 3]
-    afsnt.loc[:, 'FLT_H'] = FLT_onehot[:, 4]
-    afsnt.loc[:, 'FLT_I'] = FLT_onehot[:, 5]
-    afsnt.loc[:, 'FLT_J'] = FLT_onehot[:, 6]
-    afsnt.loc[:, 'FLT_L'] = FLT_onehot[:, 7]
-    afsnt.loc[:, 'FLT_'] = FLT_onehot[:, 8]
+    FLO[FLO==65] = 0
+    FLO[FLO==66] = 1
+    FLO[FLO==70] = 2
+    FLO[FLO==72] = 3
+    FLO[FLO==73] = 4
+    FLO[FLO==74] = 5
+    FLO[FLO==76] = 6
+    FLO[FLO > 65] = 7
+    afsnt.FLO = FLO
 
     afsnt.loc[:, 'AOD'] = (afsnt.AOD=='A').astype(int)
     afsnt.loc[:, 'IRR'] = (afsnt.IRR=='Y').astype(int)
@@ -269,34 +263,26 @@ def data_processing(input_name, output_dir):
     # afsnt.loc[:, 'HOUR3'] = HOUR_onehot[:, 3]
     # afsnt.loc[:, 'HOUR4'] = HOUR_onehot[:, 4]
 
+    afsnt.loc[:, 'WC_1'] = ((afsnt.loc[:, 'WC']>=42) & (afsnt.loc[:, 'WC']<=47)).astype(int)
+    afsnt.loc[:, 'WC_2'] = ((afsnt.loc[:, 'WC']==64) | (afsnt.loc[:, 'WC']==65) | (afsnt.loc[:, 'WC']==67) | (afsnt.loc[:, 'WC']==69)).astype(int)
+    afsnt.loc[:, 'WC_3'] = (((afsnt.loc[:, 'WC']>=70) & (afsnt.loc[:, 'WC']<=79)) | (afsnt.loc[:, 'WC']==85) | (afsnt.loc[:, 'WC']==86)).astype(int)
+
     afsnt_train = afsnt.loc[afsnt.CNL=='N', :]
-    afsnt_train = afsnt_train.drop(['ARP', 'ODP', 'FLO', 'FLT', 'REG', 'STT', 'ATT', 'DRR', 'CNL', 'CNR', 'DATE', 'STT_TIME', 'ATT_TIME'], axis=1)
+    afsnt_train = afsnt_train.drop(['FLT', 'REG', 'STT', 'ATT', 'DRR', 'CNL', 'CNR', 'DATE', 'STT_TIME', 'ATT_TIME', 'WC'], axis=1)
+    ### validation : 2019.6.16 ~
     train = afsnt_train.loc[afsnt.STT < dt.datetime(2019, 6, 15), :].reset_index(drop=True)
     validation = afsnt_train.loc[afsnt.STT > dt.datetime(2019, 6, 15), :].reset_index(drop=True)
+    ### validation : random split
+    # idx = np.random.permutation(len(afsnt))
+    # split = int(len(afsnt)*0.9)
+    # train = afsnt_train.loc[idx[:split], :].reset_index(drop=True)
+    # validation = afsnt_train.loc[idx[split:], :].reset_index(drop=True)
 
-    print(' >>> Writing the train data')
+    print(' >>> Writing the train data : {}'.format(train.shape))
     train.to_csv(output_dir+'train.csv', index=False)
-    print(' >>> Writing the validation data')
+    print(' >>> Writing the validation data : {}'.format(validation.shape))
     validation.to_csv(output_dir+'validation.csv', index=False)
 
-
-
-def standardization(data):
-    mean = np.mean(data)
-    sd = np.std(data)
-    return (data - mean)/sd
-
-
-
-def to_numpy(data):
-    # data.loc[:, 'NUM_FLT'] = standardization(data.NUM_FLT)
-    
-    Y = data.loc[:, 'DLY']
-    Y = Y.values.reshape(-1, 1)
-    Y = (Y=='Y').astype(int)
-    X = data.drop('DLY', axis=1).values
-    
-    return X, Y
 
 
 
