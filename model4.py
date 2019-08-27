@@ -1,26 +1,14 @@
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from dataframe import to_numpy
+from process import to_numpy, split, sampling
 from evaluate import evaluate
 
 
 
-def rf_model():
-    model = RandomForestClassifier(n_estimators=100, oob_score=True)
+def rf_model(n_estimators):
+    model = RandomForestClassifier(n_estimators=n_estimators, oob_score=True)
     return model
-
-
-
-def model_fit(X_train, Y_train, X_val, model):
-    print(' >>> Train')
-    Y_train = Y_train.reshape(-1)
-    model.fit(X_train, Y_train)
-
-    Y_pred = model.predict(X_val)
-    Y_prob = model.predict_proba(X_val)[:, 1]
-    print(' >>> Feature importances\n{}'.format(model.feature_importances_))
-
-    return Y_pred, Y_prob
 
 
 
@@ -28,11 +16,28 @@ if __name__ == '__main__':
     train = pd.read_csv('./data/tmp/train.csv')
     validation = pd.read_csv('./data/tmp/validation.csv')
 
-    X_train, Y_train = to_numpy(train) 
-    X_val, Y_val = to_numpy(validation)
-    model = rf_model()
-    Y_pred, Y_prob = model_fit(X_train, Y_train, X_val, model)
-    validation.loc[:, 'DLY'] = Y_pred
-    validation.loc[:, 'DLY_RATE'] = Y_prob
+    train_1, train_2 = split(train)
+    validation_1, validation_2 = split(validation)
+
+    ### 결측치 없는것
+    X_train, Y_train = to_numpy(train_1)
+    X_val, Y_val_1 = to_numpy(validation_1)
+    X_train, Y_train = sampling(0.5, X_train, Y_train)
+    model = rf_model(100)
+    model.fit(X_train, Y_train.reshape(-1))
+    validation_1.loc[:, 'DLY'] = model.predict(X_val)
+    validation_1.loc[:, 'DLY_RATE'] = model.predict_proba(X_val)[:, 1]
+
+    ### 결측치 잇는것
+    X_train, Y_train = to_numpy(train_2)
+    X_val, Y_val_2 = to_numpy(validation_2)
+    X_train, Y_train = sampling(0.5, X_train, Y_train)
+    model = rf_model(100)
+    model.fit(X_train, Y_train.reshape(-1))
+    validation_2.loc[:, 'DLY'] = model.predict(X_val)
+    validation_2.loc[:, 'DLY_RATE'] = model.predict_proba(X_val)[:, 1]
+
+    validation = pd.concat([validation_1, validation_2], sort=False)
+    Y_val = np.concatenate([Y_val_1, Y_val_2])
     validation.to_csv('./result.csv', index=False)
-    evaluate('./result.csv', Y_val)
+    evaluate('./result.csv', Y_val, message='RANDOM FOREST')

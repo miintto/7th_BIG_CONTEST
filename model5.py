@@ -28,11 +28,10 @@ if __name__ == '__main__':
     train = pd.read_csv('./data/tmp/train.csv')
     validation = pd.read_csv('./data/tmp/validation.csv')
 
-
-    train = train.loc[(train.AOD==0), :]
-    validation = validation.loc[(validation.AOD==0), :]
-    train = train.drop(['AOD'], axis = 1)
-    validation = validation.drop(['AOD'], axis = 1)
+    train = train.loc[(train.AOD==0)&(train.ARP1==1), :]
+    validation = validation.loc[(validation.AOD==0)&(train.ARP1==1), :]
+    train = train.drop(['AOD', 'ARP1', 'ARP2', 'ARP3', 'ARP15', 'ARP_'], axis = 1)
+    validation = validation.drop(['AOD', 'ARP1', 'ARP2', 'ARP3', 'ARP15', 'ARP_'], axis = 1)
 
     X_train, Y_train = to_numpy(train) 
     X_val, Y_val = to_numpy(validation)
